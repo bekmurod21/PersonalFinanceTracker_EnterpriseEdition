@@ -17,6 +17,7 @@ builder.Services.AddCustomServices();
 builder.ConfigureCORSPolicy();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHealthChecks();
+builder.Services.AddMemoryCache();
 
 var logger = new LoggerConfiguration()
     .ReadFrom

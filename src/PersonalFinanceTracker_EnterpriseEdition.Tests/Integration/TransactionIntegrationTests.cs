@@ -9,7 +9,7 @@ using PersonalFinanceTracker_EnterpriseEdition.Domain.Entities;
 using PersonalFinanceTracker_EnterpriseEdition.Infrastructure.Persistense;
 using Xunit;
 
-namespace PersonalFinanceTracker_EnterpriseEdition.Tests;
+namespace PersonalFinanceTracker_EnterpriseEdition.Tests.Integration;
 
 public class TransactionIntegrationTests
 {
@@ -38,25 +38,25 @@ public class TransactionIntegrationTests
 
         // Create
         var createDto = new CreateTransactionDto { Amount = 100, Type = Domain.Enums.TransactionType.Income, CategoryId = category.Id, Note = "Test" };
-        var created = await service.CreateAsync(createDto, userId);
+        var created = await service.CreateAsync(createDto);
         Assert.Equal(100, created.Amount);
         Assert.Equal(category.Id, created.CategoryId);
 
         // Update
         var updateDto = new UpdateTransactionDto { Amount = 150, Type = Domain.Enums.TransactionType.Income, CategoryId = category.Id, Note = "Updated", RowVersion = db.Transactions.Find(created.Id)!.RowVersion };
-        var updated = await service.UpdateAsync(created.Id, updateDto, userId);
+        var updated = await service.UpdateAsync(created.Id, updateDto);
         Assert.Equal(150, updated.Amount);
         Assert.Equal("Updated", updated.Note);
 
         // Summary
         var now = DateTime.UtcNow;
-        var summary = await service.GetMonthlySummaryAsync(userId, now.Year, now.Month);
+        var summary = await service.GetMonthlySummaryAsync( now.Year, now.Month);
         Assert.Equal(150, summary.TotalIncome);
         Assert.Equal(0, summary.TotalExpense);
         Assert.Equal(150, summary.Balance);
 
         // Delete
-        var deleted = await service.DeleteAsync(created.Id, userId);
+        var deleted = await service.DeleteAsync(created.Id);
         Assert.True(deleted);
     }
 } 

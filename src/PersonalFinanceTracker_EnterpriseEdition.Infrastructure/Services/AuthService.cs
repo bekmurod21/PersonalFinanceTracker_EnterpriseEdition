@@ -32,7 +32,7 @@ public class AuthService : IAuthService
             {
                 new Claim("Id", user.Id.ToString()),
                 new Claim(ClaimTypes.Role, user?.Role.ToString()),
-                new Claim(ClaimTypes.Name, user.FirstName),
+                new Claim(ClaimTypes.Name, user.Username),
             }),
             Audience = _configuration["JWT:Audience"],
             Issuer = _configuration["JWT:Issuer"],
@@ -47,15 +47,12 @@ public class AuthService : IAuthService
 
     public async Task<User> SignUpAsync(SignUpDto dto)
     {
-        // Email yoki UserName unikal bo‘lishi kerak
-        var exists = await _userRepository.Query(u => u.Email == dto.Email || u.UserName == dto.UserName).AnyAsync();
+        var exists = await _userRepository.Query(u => u.Email == dto.Email || u.Username == dto.Username).AnyAsync();
         if (exists) throw new Exception("User already exists");
         var user = new User
         {
-            FirstName = dto.FirstName,
-            LastName = dto.LastName,
             Email = dto.Email,
-            UserName = dto.UserName,
+            Username = dto.Username,
             Password = dto.Password.Hash(),
             Role = Domain.Enums.ERole.User
         };
@@ -66,13 +63,11 @@ public class AuthService : IAuthService
 
     public async Task<(string AccessToken, string RefreshToken)> SignInAsync(SignInDto dto)
     {
-        var user = await _userRepository.Query(u => u.Email == dto.EmailOrUserName || u.UserName == dto.EmailOrUserName).FirstOrDefaultAsync();
+        var user = await _userRepository.Query(u => u.Email == dto.EmailOrUserName || u.Username == dto.EmailOrUserName).FirstOrDefaultAsync();
         if (user == null) throw new Exception("User not found");
         if (user.Password != dto.Password.Hash()) throw new Exception("Password is incorrect");
         var accessToken = GenerateJwtToken(user);
-        // Refresh token generatsiyasi (oddiy random string)
         var refreshToken = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
-        // (Refresh tokenni DB ga saqlash logikasi keyinroq qo‘shiladi)
         return (accessToken, refreshToken);
     }
 }

@@ -7,8 +7,9 @@ using PersonalFinanceTracker_EnterpriseEdition.Application.DTOs.Users;
 using PersonalFinanceTracker_EnterpriseEdition.Domain.Entities;
 using PersonalFinanceTracker_EnterpriseEdition.Infrastructure.Services;
 using Xunit;
+using System.Linq;
 
-namespace PersonalFinanceTracker_EnterpriseEdition.Tests;
+namespace PersonalFinanceTracker_EnterpriseEdition.Tests.Unit.Services;
 
 public class AuthServiceTests
 {
@@ -19,7 +20,7 @@ public class AuthServiceTests
     public async Task SignUpAsync_ShouldReturnCreatedUser()
     {
         // Arrange
-        var dto = new SignUpDto { FirstName = "Ali", LastName = "Valiyev", Email = "ali@mail.com", UserName = "ali", Password = "12345" };
+        var dto = new SignUpDto { Email = "ali@mail.com", Password = "12345" };
         _userRepoMock.Setup(r => r.Query(It.IsAny<System.Linq.Expressions.Expression<Func<User, bool>>>()))
             .Returns((System.Linq.Expressions.Expression<Func<User, bool>> pred) => new User[0].AsQueryable());
         _userRepoMock.Setup(r => r.AddAsync(It.IsAny<User>())).ReturnsAsync((User u) => u);
@@ -31,9 +32,7 @@ public class AuthServiceTests
 
         // Assert
         Assert.Equal(dto.Email, user.Email);
-        Assert.Equal(dto.UserName, user.UserName);
-        Assert.Equal(dto.FirstName, user.FirstName);
-        Assert.Equal(dto.LastName, user.LastName);
+        Assert.Equal(dto.Username, user.Username);
         _userRepoMock.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Once);
     }
 } 

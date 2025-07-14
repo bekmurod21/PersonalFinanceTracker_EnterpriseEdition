@@ -7,7 +7,7 @@ using PersonalFinanceTracker_EnterpriseEdition.Application.Services;
 using PersonalFinanceTracker_EnterpriseEdition.Domain.Entities;
 using Xunit;
 
-namespace PersonalFinanceTracker_EnterpriseEdition.Tests;
+namespace PersonalFinanceTracker_EnterpriseEdition.Tests.Unit.Services;
 
 public class CategoryServiceTests
 {

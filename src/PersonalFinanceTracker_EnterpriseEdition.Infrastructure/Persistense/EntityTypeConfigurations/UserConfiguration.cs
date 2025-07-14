@@ -14,7 +14,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasQueryFilter(u => !u.IsDeleted);
         builder.HasData(new User()
         {
-            Id = Guid.NewGuid(), Email = "boqiyev482@gmail.com", Password = "Shunchaki21".Hash(), FirstName = "Admin",
+            Id = Guid.NewGuid(), Email = "boqiyev482@gmail.com", Password = "Shunchaki21".Hash(),
             Role = ERole.Admin
         });
     }

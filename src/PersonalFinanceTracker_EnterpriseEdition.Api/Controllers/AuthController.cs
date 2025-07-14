@@ -18,7 +18,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> SignUp([FromBody] SignUpDto dto)
     {
         var user = await _authService.SignUpAsync(dto);
-        return Ok(new { user.Id, user.Email, user.UserName });
+        return Ok(new { user.Id, user.Email, user.Username });
     }
 
     [HttpPost("signin")]

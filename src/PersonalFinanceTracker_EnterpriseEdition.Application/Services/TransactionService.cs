@@ -6,6 +6,7 @@ using PersonalFinanceTracker_EnterpriseEdition.Domain.Entities;
 using System.Linq.Expressions;
 using Microsoft.Extensions.Caching.Memory;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Extensions;
+using PersonalFinanceTracker_EnterpriseEdition.Application.Helpers;
 
 namespace PersonalFinanceTracker_EnterpriseEdition.Application.Services;
 
@@ -19,8 +20,9 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
     private readonly IAuditLogService _auditLogService = auditLogService;
     private readonly IMemoryCache _cache = cache;
 
-    public async Task<GetTransactionDto> CreateAsync(CreateTransactionDto dto, Guid userId)
+    public async Task<GetTransactionDto> CreateAsync(CreateTransactionDto dto)
     {
+        var userId = HttpContextHelper.UserId;
         var transaction = new Transaction
         {
             Amount = dto.Amount,
@@ -45,8 +47,9 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
         };
     }
 
-    public async Task<GetTransactionDto> UpdateAsync(Guid id, UpdateTransactionDto dto, Guid userId)
+    public async Task<GetTransactionDto> UpdateAsync(Guid id, UpdateTransactionDto dto)
     {
+        var userId = HttpContextHelper.UserId;
         var transaction = await _transactionRepository.GetByIdAsync(id);
         if (transaction == null || transaction.UserId != userId) throw new Exception("Transaction not found");
         if (!transaction.RowVersion.SequenceEqual(dto.RowVersion))
@@ -73,8 +76,9 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
         };
     }
 
-    public async Task<bool> DeleteAsync(Guid id, Guid userId)
+    public async Task<bool> DeleteAsync(Guid id)
     {
+        var userId = HttpContextHelper.UserId;
         var transaction = await _transactionRepository.GetByIdAsync(id);
         if (transaction == null || transaction.UserId != userId) return false;
         var oldValue = new { transaction.Amount, transaction.Type, transaction.CategoryId, transaction.Note };
@@ -84,8 +88,9 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
         return true;
     }
 
-    public async Task<GetTransactionDto> GetByIdAsync(Guid id, Guid userId)
+    public async Task<GetTransactionDto> GetByIdAsync(Guid id)
     {
+        var userId = HttpContextHelper.UserId;
         var transaction = await _transactionRepository.GetByIdAsync(id);
         if (transaction == null || transaction.UserId != userId) return null;
         var category = await _categoryRepository.GetByIdAsync(transaction.CategoryId);
@@ -101,9 +106,9 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
         };
     }
 
-    public async Task<List<GetTransactionDto>> GetAllAsync(
-        Guid userId, PaginationParams @params, string sort = null, string filter = null)
+    public async Task<List<GetTransactionDto>> GetAllAsync(PaginationParams @params, string sort = null, string filter = null)
     {
+        var userId = HttpContextHelper.UserId;
         var query = _transactionRepository.Query(t => t.UserId == userId);
 
         // Filter
@@ -144,8 +149,9 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
         return result;
     }
 
-    public async Task<TransactionSummaryDto> GetMonthlySummaryAsync(Guid userId, int year, int month)
+    public async Task<TransactionSummaryDto> GetMonthlySummaryAsync(int year, int month)
     {
+        var userId = HttpContextHelper.UserId;
         var cacheKey = $"summary:{userId}:{year}:{month}";
         if (_cache.TryGetValue(cacheKey, out TransactionSummaryDto cached))
             return cached!;
@@ -161,8 +167,9 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
         return result;
     }
 
-    public async Task<List<CategoryExpenseStatDto>> GetTopCategoryExpensesAsync(Guid userId, int year, int month, int top = 3)
+    public async Task<List<CategoryExpenseStatDto>> GetTopCategoryExpensesAsync(int year, int month, int top = 3)
     {
+        var userId = HttpContextHelper.UserId;
         var cacheKey = $"topcat:{userId}:{year}:{month}:{top}";
         if (_cache.TryGetValue(cacheKey, out List<CategoryExpenseStatDto> cached))
             return cached!;
@@ -183,8 +190,9 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
         return result;
     }
 
-    public async Task<List<MonthlyTrendDto>> GetMonthlyTrendAsync(Guid userId, int monthsCount = 6)
+    public async Task<List<MonthlyTrendDto>> GetMonthlyTrendAsync(int monthsCount = 6)
     {
+        var userId = HttpContextHelper.UserId;
         var cacheKey = $"trend:{userId}:{monthsCount}";
         if (_cache.TryGetValue(cacheKey, out List<MonthlyTrendDto> cached))
             return cached!;

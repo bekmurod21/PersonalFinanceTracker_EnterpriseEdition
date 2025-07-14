@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using Moq;
@@ -9,7 +10,7 @@ using PersonalFinanceTracker_EnterpriseEdition.Application.Services;
 using PersonalFinanceTracker_EnterpriseEdition.Domain.Entities;
 using Xunit;
 
-namespace PersonalFinanceTracker_EnterpriseEdition.Tests;
+namespace PersonalFinanceTracker_EnterpriseEdition.Tests.Unit.Services;
 
 public class TransactionServiceTests
 {
@@ -30,7 +31,7 @@ public class TransactionServiceTests
         _categoryRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync(new Category { Id = dto.CategoryId, Name = "TestCat" });
 
         // Act
-        var result = await service.CreateAsync(dto, userId);
+        var result = await service.CreateAsync(dto);
 
         // Assert
         Assert.Equal(dto.Amount, result.Amount);
@@ -56,7 +57,7 @@ public class TransactionServiceTests
         var service = new TransactionService(_transactionRepoMock.Object, _categoryRepoMock.Object, _auditLogServiceMock.Object, _memoryCache);
 
         // Act
-        var summary = await service.GetMonthlySummaryAsync(userId, year, month);
+        var summary = await service.GetMonthlySummaryAsync(year, month);
 
         // Assert
         Assert.Equal(200, summary.TotalIncome);
@@ -82,7 +83,7 @@ public class TransactionServiceTests
         var service = new TransactionService(_transactionRepoMock.Object, _categoryRepoMock.Object, _auditLogServiceMock.Object, _memoryCache);
 
         // Act
-        var trend = await service.GetMonthlyTrendAsync(userId, 2);
+        var trend = await service.GetMonthlyTrendAsync(2);
 
         // Assert
         Assert.Equal(2, trend.Count);
