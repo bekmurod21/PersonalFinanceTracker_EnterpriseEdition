@@ -52,6 +52,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<ExceptionHandlerMiddleware>();
 app.UseHealthChecks("/health");
+app.UseHealthChecks("/health/live");
+app.UseHealthChecks("/health/ready");
 app.MapControllers();
 
 app.Run();

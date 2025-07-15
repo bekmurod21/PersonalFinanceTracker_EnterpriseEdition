@@ -3,12 +3,11 @@ using PersonalFinanceTracker_EnterpriseEdition.Application.Abstractions;
 using PersonalFinanceTracker_EnterpriseEdition.Application.DTOs.Transactions;
 using PersonalFinanceTracker_EnterpriseEdition.Domain.Configurations;
 using PersonalFinanceTracker_EnterpriseEdition.Domain.Entities;
-using System.Linq.Expressions;
 using Microsoft.Extensions.Caching.Distributed;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Extensions;
-using PersonalFinanceTracker_EnterpriseEdition.Application.Helpers;
 using PersonalFinanceTracker_EnterpriseEdition.Domain.Exceptions;
 using PersonalFinanceTracker_EnterpriseEdition.Application.DTOs.Categories;
+using PersonalFinanceTracker_EnterpriseEdition.Domain.Enums;
 
 namespace PersonalFinanceTracker_EnterpriseEdition.Application.Services;
 
@@ -167,8 +166,8 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
         if (cachedBytes != null)
             return System.Text.Json.JsonSerializer.Deserialize<TransactionSummaryDto>(cachedBytes)!;
         var query = _transactionRepository.Query(t => t.UserId == userId && t.CreatedAt.Year == year && t.CreatedAt.Month == month);
-        var totalIncome = await query.Where(t => t.Type == Domain.Enums.TransactionType.Income).SumAsync(t => t.Amount);
-        var totalExpense = await query.Where(t => t.Type == Domain.Enums.TransactionType.Expense).SumAsync(t => t.Amount);
+        var totalIncome = await query.Where(t => t.Type == TransactionType.Income).SumAsync(t => t.Amount);
+        var totalExpense = await query.Where(t => t.Type == TransactionType.Expense).SumAsync(t => t.Amount);
         var result = new TransactionSummaryDto
         {
             TotalIncome = totalIncome,
@@ -185,19 +184,24 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
         var cachedBytes = await _cache.GetAsync(cacheKey);
         if (cachedBytes != null)
             return System.Text.Json.JsonSerializer.Deserialize<List<CategoryExpenseStatDto>>(cachedBytes)!;
-        var query = _transactionRepository.Query(t => t.UserId == userId && t.CreatedAt.Year == year && t.CreatedAt.Month == month && t.Type == Domain.Enums.TransactionType.Expense);
+        var query = _transactionRepository.Query(t => t.UserId == userId && t.CreatedAt.Year == year && t.CreatedAt.Month == month && t.Type == TransactionType.Expense);
         var stats = await query.GroupBy(t => t.CategoryId)
             .Select(g => new { CategoryId = g.Key, TotalExpense = g.Sum(t => t.Amount) })
             .OrderByDescending(x => x.TotalExpense)
             .Take(top)
             .ToListAsync();
-        var categories = await _categoryRepository.Query(c => stats.Select(s => s.CategoryId).Contains(c.Id)).ToListAsync();
-        var result = stats.Select(s => new CategoryExpenseStatDto
-        {
-            Id = s.CategoryId,
-            Name = categories.FirstOrDefault(c => c.Id == s.CategoryId)?.Name ?? string.Empty,
-            TotalExpense = s.TotalExpense
-        }).ToList();
+
+        var result = await _categoryRepository.Query(c => stats.Select(s => s.CategoryId).Contains(c.Id))
+            .Select(s => new CategoryExpenseStatDto
+            {
+                Id = s.Id,
+                Name = s.Name,
+                TotalExpense = stats.Where(stat=> stat.CategoryId == s.Id)
+                                    .Select(stat => stat.TotalExpense)
+                                    .FirstOrDefault()
+            })
+            .ToListAsync();
+
         var bytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(result);
         await _cache.SetAsync(cacheKey, bytes, new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) });
         return result;
@@ -211,17 +215,17 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
             return System.Text.Json.JsonSerializer.Deserialize<List<MonthlyTrendDto>>(cachedBytes)!;
         var fromDate = DateTime.UtcNow.AddMonths(-monthsCount + 1);
         var query = _transactionRepository.Query(t => t.UserId == userId && t.CreatedAt >= fromDate);
-        var data = await query.ToListAsync();
-        var trends = data.GroupBy(t => new { t.CreatedAt.Year, t.CreatedAt.Month })
+        var trends = await query.GroupBy(t => new { t.CreatedAt.Year, t.CreatedAt.Month })
             .Select(g => new MonthlyTrendDto
             {
                 Year = g.Key.Year,
                 Month = g.Key.Month,
-                Income = g.Where(t => t.Type == Domain.Enums.TransactionType.Income).Sum(t => t.Amount),
-                Expense = g.Where(t => t.Type == Domain.Enums.TransactionType.Expense).Sum(t => t.Amount)
+                Income = g.Where(t => t.Type == TransactionType.Income).Sum(t => t.Amount),
+                Expense = g.Where(t => t.Type == TransactionType.Expense).Sum(t => t.Amount)
             })
-            .OrderBy(x => x.Year).ThenBy(x => x.Month)
-            .ToList();
+            .OrderBy(x => x.Year)
+            .ThenBy(x => x.Month)
+            .ToListAsync();
         var bytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(trends);
         await _cache.SetAsync(cacheKey, bytes, new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) });
         return trends;

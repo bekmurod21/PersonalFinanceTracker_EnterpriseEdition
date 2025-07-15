@@ -21,6 +21,7 @@ public static class DependencyInjection
         
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped(typeof(IRepository<>),typeof(Repository<>));
+        services.AddHostedService<ExcelExportWorker>();
 
         return services;
     }
