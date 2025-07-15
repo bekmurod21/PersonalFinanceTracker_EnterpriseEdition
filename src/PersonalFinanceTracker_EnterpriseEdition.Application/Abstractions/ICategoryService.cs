@@ -1,4 +1,5 @@
 using PersonalFinanceTracker_EnterpriseEdition.Application.DTOs.Categories;
+using PersonalFinanceTracker_EnterpriseEdition.Domain.Configurations;
 
 namespace PersonalFinanceTracker_EnterpriseEdition.Application.Abstractions;
 
@@ -8,5 +9,5 @@ public interface ICategoryService
     Task<GetCategoryDto> UpdateAsync(Guid id, UpdateCategoryDto dto, Guid userId);
     Task<bool> DeleteAsync(Guid id, Guid userId);
     Task<GetCategoryDto> GetByIdAsync(Guid id, Guid userId);
-    Task<List<GetCategoryDto>> GetAllAsync(Guid userId);
+    Task<List<GetCategoryDto>> GetAllAsync(Guid userId,string search,PaginationParams @params);
 } 

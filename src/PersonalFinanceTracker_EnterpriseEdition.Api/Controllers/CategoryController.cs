@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Server.IIS;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Abstractions;
 using PersonalFinanceTracker_EnterpriseEdition.Application.DTOs.Categories;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Helpers;
+using PersonalFinanceTracker_EnterpriseEdition.Domain.Configurations;
 using System.Security.Claims;
 
 namespace PersonalFinanceTracker_EnterpriseEdition.Api.Controllers;
@@ -18,9 +19,9 @@ public class CategoryController(ICategoryService categoryService) : ControllerBa
     private static Guid GetUserId() => HttpContextHelper.UserId;
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] PaginationParams @params,[FromQuery]string? search)
     {
-        var result = await _categoryService.GetAllAsync(GetUserId());
+        var result = await _categoryService.GetAllAsync(GetUserId(),search,@params);
         return Ok(result);
     }
 

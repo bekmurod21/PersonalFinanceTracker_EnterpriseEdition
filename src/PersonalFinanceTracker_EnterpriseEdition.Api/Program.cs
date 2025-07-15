@@ -9,15 +9,17 @@ using PersonalFinanceTracker_EnterpriseEdition.Infrastructure.Extensions;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
-builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddInfrastructure();
 builder.Services.AddApplication();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddCustomServices();
+builder.Services.AddCustomServices(builder.Configuration);
 builder.ConfigureCORSPolicy();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddHealthChecks();
-builder.Services.AddMemoryCache();
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration["Redis:Configuration"] ?? "localhost:6379";
+});
 
 var logger = new LoggerConfiguration()
     .ReadFrom

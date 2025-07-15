@@ -21,6 +21,6 @@ public class AuthController(IAuthService authService) : ControllerBase
     public async Task<IActionResult> SignIn([FromBody] SignInDto dto)
     {
         var tokens = await _authService.SignInAsync(dto);
-        return Ok(tokens);
+        return Ok(new { tokens.AccessToken, tokens.RefreshToken });
     }
 }

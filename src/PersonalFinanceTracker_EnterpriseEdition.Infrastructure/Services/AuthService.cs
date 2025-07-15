@@ -64,9 +64,10 @@ public class AuthService : IAuthService
 
     public async Task<(string AccessToken, string RefreshToken)> SignInAsync(SignInDto dto)
     {
-        var user = await _userRepository.Query(u => u.Email == dto.EmailOrUserName || u.Username == dto.EmailOrUserName).FirstOrDefaultAsync();
-        if (user == null) throw new CustomException(404, "User not found");
-        if (user.Password != dto.Password.Hash()) throw new CustomException(401, "Password is incorrect");
+        var user = await _userRepository.Query(u => u.Email == dto.EmailOrUserName || u.Username == dto.EmailOrUserName)
+            .FirstOrDefaultAsync()
+            ?? throw new CustomException(404, "User not found");
+        if (!PasswordHelper.Verify(dto.Password,user.Password)) throw new CustomException(401, "Password is incorrect");
         var accessToken = GenerateJwtToken(user);
         var refreshToken = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
         return (accessToken, refreshToken);

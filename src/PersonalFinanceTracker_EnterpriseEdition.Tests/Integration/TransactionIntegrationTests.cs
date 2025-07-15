@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Abstractions;
 using PersonalFinanceTracker_EnterpriseEdition.Application.DTOs.Transactions;
@@ -30,7 +31,7 @@ public class TransactionIntegrationTests
         var transactionRepo = new Repository<Transaction>(db);
         var categoryRepo = new Repository<Category>(db);
         var auditLogService = new Moq.Mock<IAuditLogService>().Object;
-        var cache = new MemoryCache(new MemoryCacheOptions());
+        var cache = new MemoryDistributedCache(new Microsoft.Extensions.Options.OptionsWrapper<MemoryDistributedCacheOptions>(new MemoryDistributedCacheOptions()));
         var userId = Guid.NewGuid();
         var category = new Category { Id = Guid.NewGuid(), Name = "TestCat", Color = "#fff", UserId = userId };
         db.Categories.Add(category);
@@ -44,8 +45,9 @@ public class TransactionIntegrationTests
         Assert.Equal(category.Id, created.Category.Id);
 
         // Update
-        var rowversion = db.Transactions.FirstOrDefault(t => t.Id == created.Id)!.RowVersion;
-        var updateDto = new UpdateTransactionDto { Amount = 150, Type = Domain.Enums.TransactionType.Income, CategoryId = category.Id, Note = "Updated", RowVersion = db.Transactions.FirstOrDefault(t => t.Id == created.Id)!.RowVersion };
+        db.Entry(db.Transactions.First()).Reload();
+        var dbTransaction = db.Transactions.Find(created.Id)!;
+        var updateDto = new UpdateTransactionDto { Amount = 150, Type = Domain.Enums.TransactionType.Income, CategoryId = category.Id, Note = "Updated", RowVersion = dbTransaction.RowVersion };
         var updated = await service.UpdateAsync(userId,created.Id, updateDto);
         Assert.Equal(150, updated.Amount);
         Assert.Equal("Updated", updated.Note);

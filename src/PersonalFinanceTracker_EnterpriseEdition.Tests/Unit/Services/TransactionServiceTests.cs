@@ -4,12 +4,14 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
 using Moq;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Abstractions;
 using PersonalFinanceTracker_EnterpriseEdition.Application.DTOs.Transactions;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Services;
 using PersonalFinanceTracker_EnterpriseEdition.Domain.Entities;
 using Xunit;
+using MockQueryable.Moq;
 
 namespace PersonalFinanceTracker_EnterpriseEdition.Tests.Unit.Services;
 
@@ -18,21 +20,22 @@ public class TransactionServiceTests
     private readonly Mock<IRepository<Transaction>> _transactionRepoMock = new();
     private readonly Mock<IRepository<Category>> _categoryRepoMock = new();
     private readonly Mock<IAuditLogService> _auditLogServiceMock = new();
-    private readonly IMemoryCache _memoryCache = new MemoryCache(new MemoryCacheOptions());
+    private readonly IDistributedCache _distributedCache = new MemoryDistributedCache(new Microsoft.Extensions.Options.OptionsWrapper<MemoryDistributedCacheOptions>(new MemoryDistributedCacheOptions()));
 
     [Fact]
     public async Task CreateAsync_ShouldReturnCreatedTransactionDto()
     {
         // Arrange
-        var service = new TransactionService(_transactionRepoMock.Object, _categoryRepoMock.Object, _auditLogServiceMock.Object, _memoryCache);
+        var service = new TransactionService(_transactionRepoMock.Object, _categoryRepoMock.Object, _auditLogServiceMock.Object, _distributedCache);
         var userId = Guid.NewGuid();
-        var dto = new CreateTransactionDto { Amount = 100, Type = Domain.Enums.TransactionType.Income, CategoryId = Guid.NewGuid(), Note = "Test" };
+        var categoryId = Guid.NewGuid();
+        var dto = new CreateTransactionDto { Amount = 100, Type = Domain.Enums.TransactionType.Income, CategoryId = categoryId, Note = "Test" };
         _transactionRepoMock.Setup(r => r.AddAsync(It.IsAny<Transaction>())).ReturnsAsync((Transaction t) => t);
         _transactionRepoMock.Setup(r => r.SaveChangesAsync()).ReturnsAsync(1);
-        _categoryRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), null)).ReturnsAsync(new Category { Id = dto.CategoryId, Name = "TestCat" });
+        _categoryRepoMock.Setup(r => r.GetByIdAsync(categoryId, null)).ReturnsAsync(new Category { Id = categoryId, Name = "TestCat", UserId = userId });
 
         // Act
-        var result = await service.CreateAsync(userId,dto);
+        var result = await service.CreateAsync(userId, dto);
 
         // Assert
         Assert.Equal(dto.Amount, result.Amount);
@@ -54,8 +57,8 @@ public class TransactionServiceTests
             new Transaction { UserId = userId, CreatedAt = new DateTime(year, month, 2), Amount = 50, Type = Domain.Enums.TransactionType.Expense }
         };
         _transactionRepoMock.Setup(r => r.Query(It.IsAny<Expression<Func<Transaction, bool>>>(), null))
-            .Returns((System.Linq.Expressions.Expression<Func<Transaction, bool>> pred, string[] includes) => transactions.AsQueryable().Where(pred));
-        var service = new TransactionService(_transactionRepoMock.Object, _categoryRepoMock.Object, _auditLogServiceMock.Object, _memoryCache);
+            .Returns((Expression<Func<Transaction, bool>> pred, string[] includes) => transactions.AsQueryable().Where(pred).BuildMockDbSet().Object);
+        var service = new TransactionService(_transactionRepoMock.Object, _categoryRepoMock.Object, _auditLogServiceMock.Object, _distributedCache);
 
         // Act
         var summary = await service.GetMonthlySummaryAsync(userId,year, month);
@@ -70,7 +73,7 @@ public class TransactionServiceTests
     public async Task GetMonthlyTrendAsync_ShouldReturnCorrectTrend()
     {
         // Arrange
-        var userId = Guid.NewGuid();
+        var userId = Guid.NewGuid(); // har safar unique
         var now = DateTime.UtcNow;
         var transactions = new List<Transaction>
         {
@@ -80,8 +83,9 @@ public class TransactionServiceTests
             new Transaction { UserId = userId, CreatedAt = now, Amount = 50, Type = Domain.Enums.TransactionType.Expense }
         };
         _transactionRepoMock.Setup(r => r.Query(It.IsAny<Expression<Func<Transaction, bool>>>(), null))
-            .Returns((System.Linq.Expressions.Expression<Func<Transaction, bool>> pred, string[] includes) => transactions.AsQueryable().Where(pred));
-        var service = new TransactionService(_transactionRepoMock.Object, _categoryRepoMock.Object, _auditLogServiceMock.Object, _memoryCache);
+            .Returns((Expression<Func<Transaction, bool>> pred, string[] includes) => transactions.AsQueryable().Where(pred).BuildMockDbSet().Object);
+        var distributedCache = new MemoryDistributedCache(new Microsoft.Extensions.Options.OptionsWrapper<MemoryDistributedCacheOptions>(new MemoryDistributedCacheOptions()));
+        var service = new TransactionService(_transactionRepoMock.Object, _categoryRepoMock.Object, _auditLogServiceMock.Object, distributedCache);
 
         // Act
         var trend = await service.GetMonthlyTrendAsync(userId,2);

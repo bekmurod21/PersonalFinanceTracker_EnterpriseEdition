@@ -10,6 +10,7 @@ using Xunit;
 using System.Linq;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Helpers;
 using System.Linq.Expressions;
+using MockQueryable.Moq;
 
 namespace PersonalFinanceTracker_EnterpriseEdition.Tests.Unit.Services;
 
@@ -24,7 +25,7 @@ public class AuthServiceTests
         // Arrange
         var dto = new SignUpDto { Email = "ali@mail.com", Password = "12345" };
         _userRepoMock.Setup(r => r.Query(It.IsAny<Expression<Func<User, bool>>>(), null))
-            .Returns((Expression<Func<User, bool>> pred, string[] includes) => new User[0].AsQueryable());
+            .Returns((Expression<Func<User, bool>> pred, string[] includes) => (new User[0]).AsQueryable().BuildMockDbSet().Object);
         _userRepoMock.Setup(r => r.AddAsync(It.IsAny<User>())).ReturnsAsync((User u) => u);
         _userRepoMock.Setup(r => r.SaveChangesAsync()).ReturnsAsync(1);
         var service = new AuthService(_configMock.Object, _userRepoMock.Object);
@@ -44,7 +45,7 @@ public class AuthServiceTests
         // Arrange
         var dto = new SignUpDto { Email = "ali@mail.com", Username = "ali", Password = "12345" };
         _userRepoMock.Setup(r => r.Query(It.IsAny<Expression<Func<User, bool>>>(), null))
-            .Returns((Expression<Func<User, bool>> pred, string[] includes) => new[] { new User() }.AsQueryable());
+            .Returns((Expression<Func<User, bool>> pred, string[] includes) => (new[] { new User() }).AsQueryable().BuildMockDbSet().Object);
         var service = new AuthService(_configMock.Object, _userRepoMock.Object);
 
         // Act & Assert
@@ -59,7 +60,7 @@ public class AuthServiceTests
         // Arrange
         var dto = new SignInDto { EmailOrUserName = "notfound", Password = "12345" };
         _userRepoMock.Setup(r => r.Query(It.IsAny<Expression<Func<User, bool>>>(), null))
-            .Returns((Expression<Func<User, bool>> pred, string[] includes) => new User[0].AsQueryable());
+            .Returns((Expression<Func<User, bool>> pred, string[] includes) => (new User[0]).AsQueryable().BuildMockDbSet().Object);
         var service = new AuthService(_configMock.Object, _userRepoMock.Object);
 
         // Act & Assert
@@ -75,7 +76,7 @@ public class AuthServiceTests
         var dto = new SignInDto { EmailOrUserName = "ali", Password = "wrong" };
         var user = new User { Email = "ali@mail.com", Username = "ali", Password = "12345".Hash() };
         _userRepoMock.Setup(r => r.Query(It.IsAny<Expression<Func<User, bool>>>(), null))
-            .Returns((Expression<Func<User, bool>> pred, string[] includes) => new[] { user }.AsQueryable());
+            .Returns((Expression<Func<User, bool>> pred, string[] includes) => (new[] { user }).AsQueryable().BuildMockDbSet().Object);
         var service = new AuthService(_configMock.Object, _userRepoMock.Object);
 
         // Act & Assert

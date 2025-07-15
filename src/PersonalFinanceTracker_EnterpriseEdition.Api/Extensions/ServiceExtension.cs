@@ -1,15 +1,20 @@
-﻿using System.Text.Json.Serialization;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Serilog;
 using PersonalFinanceTracker_EnterpriseEdition.Api.Models;
+using PersonalFinanceTracker_EnterpriseEdition.Domain.Helpers;
+using Serilog;
+using System.Text;
+using System.Text.Json.Serialization;
 
 namespace PersonalFinanceTracker_EnterpriseEdition.Api.Extensions;
 
 public static class ServiceExtension
 {
-     public static void AddCustomServices(this IServiceCollection services)
+     public static void AddCustomServices(this IServiceCollection services,IConfiguration configuration)
     {
         services.AddControllers().AddJsonOptions(options =>
                                                     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
@@ -67,5 +72,31 @@ public static class ServiceExtension
                 }
             });
         });
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = false,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = configuration["Jwt:Issuer"],
+                        ValidAudience = configuration["JWT:Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"])),
+                        ClockSkew = TimeSpan.Zero
+                    };
+                });
+
+        services.AddAuthorizationBuilder()
+            .AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"))
+            .AddPolicy("UserOnly", policy => policy.RequireRole("User"));
+
+        services.AddSingleton<IHealthCheckPublisher, HealthCheckPublisher>();
+
+        EnvironmentHelper.DatabaseUrl = configuration.GetConnectionString("DefaultConnection");
+
+        services.AddHealthChecks()
+                .AddNpgSql(EnvironmentHelper.DatabaseUrl);
     }
 }

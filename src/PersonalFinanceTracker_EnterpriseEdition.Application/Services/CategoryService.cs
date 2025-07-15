@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Abstractions;
 using PersonalFinanceTracker_EnterpriseEdition.Application.DTOs.Categories;
+using PersonalFinanceTracker_EnterpriseEdition.Application.Extensions;
+using PersonalFinanceTracker_EnterpriseEdition.Domain.Configurations;
 using PersonalFinanceTracker_EnterpriseEdition.Domain.Entities;
 using PersonalFinanceTracker_EnterpriseEdition.Domain.Exceptions;
 
@@ -71,16 +73,20 @@ public class CategoryService(IRepository<Category> categoryRepository, IAuditLog
         };
     }
 
-    public async Task<List<GetCategoryDto>> GetAllAsync(Guid userId)
+    public async Task<List<GetCategoryDto>> GetAllAsync(Guid userId,string search,PaginationParams @params)
     {
-        return await _categoryRepository.Query(c => c.UserId == userId)
-                                        .AsNoTracking()
-                                        .Select(c => new GetCategoryDto
-                                        {
-                                            Id = c.Id,
-                                            Name = c.Name,
-                                            Color = c.Color
-                                        })
-                                        .ToListAsync();
+        var query = _categoryRepository.Query(c => c.UserId == userId)
+                                        .AsNoTracking();
+        if (!string.IsNullOrEmpty(search))
+            query = query.Where(c => EF.Functions.Like(c.Name, $"%{search}%"));
+
+        return await query.ToPagedList(@params)
+                          .Select(c => new GetCategoryDto
+                          {
+                              Id = c.Id,
+                              Name = c.Name,
+                              Color = c.Color
+                          })
+                          .ToListAsync();
     }
 } 
