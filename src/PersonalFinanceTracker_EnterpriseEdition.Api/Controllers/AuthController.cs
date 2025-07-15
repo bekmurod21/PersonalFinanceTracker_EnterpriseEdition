@@ -6,13 +6,9 @@ namespace PersonalFinanceTracker_EnterpriseEdition.Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class AuthController : ControllerBase
+public class AuthController(IAuthService authService) : ControllerBase
 {
-    private readonly IAuthService _authService;
-    public AuthController(IAuthService authService)
-    {
-        _authService = authService;
-    }
+    private readonly IAuthService _authService = authService;
 
     [HttpPost("signup")]
     public async Task<IActionResult> SignUp([FromBody] SignUpDto dto)

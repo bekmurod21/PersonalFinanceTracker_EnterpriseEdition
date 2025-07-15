@@ -5,9 +5,8 @@ namespace PersonalFinanceTracker_EnterpriseEdition.Application.Abstractions;
 
 public interface IRepository<T> where T : Auditable
 {
-    Task<T> GetByIdAsync(Guid id);
-    Task<List<T>> GetAllAsync(Expression<Func<T, bool>> predicate = null);
-    IQueryable<T> Query(Expression<Func<T, bool>> predicate = null);
+    Task<T> GetByIdAsync(Guid id, string[] includes = null);
+    IQueryable<T> Query(Expression<Func<T, bool>> predicate = null, string[] includes = null);
     Task<T> AddAsync(T entity);
     Task<T> UpdateAsync(T entity);
     Task<bool> DeleteAsync(Guid id);

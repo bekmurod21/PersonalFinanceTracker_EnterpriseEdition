@@ -7,6 +7,8 @@ using System.Linq.Expressions;
 using Microsoft.Extensions.Caching.Memory;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Extensions;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Helpers;
+using PersonalFinanceTracker_EnterpriseEdition.Domain.Exceptions;
+using PersonalFinanceTracker_EnterpriseEdition.Application.DTOs.Categories;
 
 namespace PersonalFinanceTracker_EnterpriseEdition.Application.Services;
 
@@ -20,9 +22,11 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
     private readonly IAuditLogService _auditLogService = auditLogService;
     private readonly IMemoryCache _cache = cache;
 
-    public async Task<GetTransactionDto> CreateAsync(CreateTransactionDto dto)
+    public async Task<GetTransactionDto> CreateAsync(Guid userId,CreateTransactionDto dto)
     {
-        var userId = HttpContextHelper.UserId;
+        var category = await _categoryRepository.GetByIdAsync(dto.CategoryId);
+        if (category is null || category.UserId != userId)
+            throw new CustomException(404, "Category not found");
         var transaction = new Transaction
         {
             Amount = dto.Amount,
@@ -34,26 +38,32 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
         await _transactionRepository.AddAsync(transaction);
         await _transactionRepository.SaveChangesAsync();
         await _auditLogService.LogCreateAsync(nameof(Transaction), transaction.Id, userId, transaction);
-        var category = await _categoryRepository.GetByIdAsync(transaction.CategoryId);
         return new GetTransactionDto
         {
             Id = transaction.Id,
             Amount = transaction.Amount,
             Type = transaction.Type,
-            CategoryId = transaction.CategoryId,
-            CategoryName = category?.Name ?? string.Empty,
             Note = transaction.Note,
-            CreatedAt = transaction.CreatedAt
+            CreatedAt = transaction.CreatedAt,
+            Category = new GetCategoryDto
+            {
+                Id = category.Id,
+                Name = category.Name,
+                Color = category.Color
+            }
         };
     }
 
-    public async Task<GetTransactionDto> UpdateAsync(Guid id, UpdateTransactionDto dto)
+    public async Task<GetTransactionDto> UpdateAsync(Guid userId,Guid id, UpdateTransactionDto dto)
     {
-        var userId = HttpContextHelper.UserId;
         var transaction = await _transactionRepository.GetByIdAsync(id);
-        if (transaction == null || transaction.UserId != userId) throw new Exception("Transaction not found");
+        if (transaction == null || transaction.UserId != userId) throw new CustomException(404,"Transaction not found");
         if (!transaction.RowVersion.SequenceEqual(dto.RowVersion))
-            throw new Exception("Transaction has been modified by another process (concurrency conflict)");
+            throw new CustomException(409,"Transaction has been modified by another process (concurrency conflict)");
+        var category = await _categoryRepository.GetByIdAsync(dto.CategoryId);
+        if (category is null || category.UserId != userId)
+            throw new CustomException(404, "Category not found");
+
         var oldValue = new { transaction.Amount, transaction.Type, transaction.CategoryId, transaction.Note };
         transaction.Amount = dto.Amount;
         transaction.Type = dto.Type;
@@ -63,22 +73,25 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
         await _transactionRepository.UpdateAsync(transaction);
         await _transactionRepository.SaveChangesAsync();
         await _auditLogService.LogUpdateAsync(nameof(Transaction), transaction.Id, userId, oldValue, transaction);
-        var category = await _categoryRepository.GetByIdAsync(transaction.CategoryId);
+
         return new GetTransactionDto
         {
             Id = transaction.Id,
             Amount = transaction.Amount,
             Type = transaction.Type,
-            CategoryId = transaction.CategoryId,
-            CategoryName = category?.Name ?? string.Empty,
             Note = transaction.Note,
-            CreatedAt = transaction.CreatedAt
+            CreatedAt = transaction.CreatedAt,
+            Category = new GetCategoryDto
+            {
+                Id = category.Id,
+                Name = category.Name,
+                Color = category.Color
+            }
         };
     }
 
-    public async Task<bool> DeleteAsync(Guid id)
+    public async Task<bool> DeleteAsync(Guid userId,Guid id)
     {
-        var userId = HttpContextHelper.UserId;
         var transaction = await _transactionRepository.GetByIdAsync(id);
         if (transaction == null || transaction.UserId != userId) return false;
         var oldValue = new { transaction.Amount, transaction.Type, transaction.CategoryId, transaction.Note };
@@ -88,36 +101,35 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
         return true;
     }
 
-    public async Task<GetTransactionDto> GetByIdAsync(Guid id)
+    public async Task<GetTransactionDto> GetByIdAsync(Guid userId,Guid id)
     {
-        var userId = HttpContextHelper.UserId;
-        var transaction = await _transactionRepository.GetByIdAsync(id);
+        var transaction = await _transactionRepository.GetByIdAsync(id, ["Category"]);
         if (transaction == null || transaction.UserId != userId) return null;
-        var category = await _categoryRepository.GetByIdAsync(transaction.CategoryId);
+        var category = transaction.Category;
         return new GetTransactionDto
         {
             Id = transaction.Id,
             Amount = transaction.Amount,
             Type = transaction.Type,
-            CategoryId = transaction.CategoryId,
-            CategoryName = category?.Name ?? string.Empty,
             Note = transaction.Note,
-            CreatedAt = transaction.CreatedAt
+            CreatedAt = transaction.CreatedAt,
+            Category = category == null ? null : new DTOs.Categories.GetCategoryDto
+            {
+                Id = category.Id,
+                Color = category.Color,
+                Name = category.Name,
+            }
         };
     }
 
-    public async Task<List<GetTransactionDto>> GetAllAsync(PaginationParams @params, string sort = null, string filter = null)
+    public async Task<List<GetTransactionDto>> GetAllAsync(Guid userId,PaginationParams @params, string sort = null, string filter = null)
     {
-        var userId = HttpContextHelper.UserId;
-        var query = _transactionRepository.Query(t => t.UserId == userId);
+        var query = _transactionRepository.Query(t => t.UserId == userId)
+                                                             .AsNoTracking();
 
-        // Filter
         if (!string.IsNullOrWhiteSpace(filter))
-        {
             query = query.Where(t => t.Note != null && t.Note.Contains(filter));
-        }
 
-        // Sort
         if (!string.IsNullOrWhiteSpace(sort))
         {
             if (sort.Equals("amount", StringComparison.OrdinalIgnoreCase))
@@ -130,28 +142,26 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
             query = query.OrderByDescending(t => t.CreatedAt);
         }
 
-        var items = await query.ToPagedList(@params)
-                              .ToListAsync();
-
-        var categoryIds = items.Select(x => x.CategoryId).Distinct().ToList();
-        var categories = await _categoryRepository.GetAllAsync(c => categoryIds.Contains(c.Id));
-        var result = items.Select(t => new GetTransactionDto
-        {
-            Id = t.Id,
-            Amount = t.Amount,
-            Type = t.Type,
-            CategoryId = t.CategoryId,
-            CategoryName = categories.FirstOrDefault(c => c.Id == t.CategoryId)?.Name ?? string.Empty,
-            Note = t.Note,
-            CreatedAt = t.CreatedAt
-        }).ToList();
-
-        return result;
+        return await query.ToPagedList(@params)
+                          .Select(t => new GetTransactionDto
+                          {
+                              Id = t.Id,
+                              Amount = t.Amount,
+                              Type = t.Type,
+                              Note = t.Note,
+                              CreatedAt = t.CreatedAt,
+                              Category = t.Category == null ? null :new DTOs.Categories.GetCategoryDto
+                              {
+                                  Id = t.CategoryId,
+                                  Color = t.Category.Color,
+                                  Name = t.Category.Name,
+                              }
+                          })
+                          .ToListAsync();
     }
 
-    public async Task<TransactionSummaryDto> GetMonthlySummaryAsync(int year, int month)
+    public async Task<TransactionSummaryDto> GetMonthlySummaryAsync(Guid userId, int year, int month)
     {
-        var userId = HttpContextHelper.UserId;
         var cacheKey = $"summary:{userId}:{year}:{month}";
         if (_cache.TryGetValue(cacheKey, out TransactionSummaryDto cached))
             return cached!;
@@ -167,9 +177,8 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
         return result;
     }
 
-    public async Task<List<CategoryExpenseStatDto>> GetTopCategoryExpensesAsync(int year, int month, int top = 3)
+    public async Task<List<CategoryExpenseStatDto>> GetTopCategoryExpensesAsync(Guid userId, int year, int month, int top = 3)
     {
-        var userId = HttpContextHelper.UserId;
         var cacheKey = $"topcat:{userId}:{year}:{month}:{top}";
         if (_cache.TryGetValue(cacheKey, out List<CategoryExpenseStatDto> cached))
             return cached!;
@@ -179,20 +188,19 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
             .OrderByDescending(x => x.TotalExpense)
             .Take(top)
             .ToListAsync();
-        var categories = await _categoryRepository.GetAllAsync(c => stats.Select(s => s.CategoryId).Contains(c.Id));
+        var categories = await _categoryRepository.Query(c => stats.Select(s => s.CategoryId).Contains(c.Id)).ToListAsync();
         var result = stats.Select(s => new CategoryExpenseStatDto
         {
-            CategoryId = s.CategoryId,
-            CategoryName = categories.FirstOrDefault(c => c.Id == s.CategoryId)?.Name ?? string.Empty,
+            Id = s.CategoryId,
+            Name = categories.FirstOrDefault(c => c.Id == s.CategoryId)?.Name ?? string.Empty,
             TotalExpense = s.TotalExpense
         }).ToList();
         _cache.Set(cacheKey, result, TimeSpan.FromMinutes(5));
         return result;
     }
 
-    public async Task<List<MonthlyTrendDto>> GetMonthlyTrendAsync(int monthsCount = 6)
+    public async Task<List<MonthlyTrendDto>> GetMonthlyTrendAsync(Guid userId,int monthsCount = 6)
     {
-        var userId = HttpContextHelper.UserId;
         var cacheKey = $"trend:{userId}:{monthsCount}";
         if (_cache.TryGetValue(cacheKey, out List<MonthlyTrendDto> cached))
             return cached!;

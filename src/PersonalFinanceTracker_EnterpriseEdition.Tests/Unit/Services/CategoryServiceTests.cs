@@ -33,4 +33,20 @@ public class CategoryServiceTests
         _categoryRepoMock.Verify(r => r.AddAsync(It.IsAny<Category>()), Times.Once);
         _auditLogServiceMock.Verify(a => a.LogCreateAsync(nameof(Category), It.IsAny<Guid>(), userId, It.IsAny<object>()), Times.Once);
     }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldThrowCustomException_WhenCategoryNotFound()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var categoryId = Guid.NewGuid();
+        _categoryRepoMock.Setup(r => r.GetByIdAsync(categoryId, null)).ReturnsAsync((Category)null);
+        var service = new CategoryService(_categoryRepoMock.Object, _auditLogServiceMock.Object);
+        var dto = new UpdateCategoryDto { Name = "Test", Color = "#fff" };
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<PersonalFinanceTracker_EnterpriseEdition.Domain.Exceptions.CustomException>(() => service.UpdateAsync(categoryId, dto, userId));
+        Assert.Equal(404, ex.StatusCode);
+        Assert.Equal("Category not found", ex.Message);
+    }
 } 

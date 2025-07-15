@@ -9,7 +9,6 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
     public void Configure(EntityTypeBuilder<Transaction> builder)
     {
         builder.HasIndex(t => t.IsDeleted);
-        builder.HasQueryFilter(t => !t.IsDeleted);
         builder.HasOne(t => t.User)
             .WithMany()
             .HasForeignKey(t => t.UserId);

@@ -1,6 +1,8 @@
+using Microsoft.EntityFrameworkCore;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Abstractions;
 using PersonalFinanceTracker_EnterpriseEdition.Application.DTOs.Categories;
 using PersonalFinanceTracker_EnterpriseEdition.Domain.Entities;
+using PersonalFinanceTracker_EnterpriseEdition.Domain.Exceptions;
 
 namespace PersonalFinanceTracker_EnterpriseEdition.Application.Services;
 
@@ -31,7 +33,7 @@ public class CategoryService(IRepository<Category> categoryRepository, IAuditLog
     public async Task<GetCategoryDto> UpdateAsync(Guid id, UpdateCategoryDto dto, Guid userId)
     {
         var category = await _categoryRepository.GetByIdAsync(id);
-        if (category == null || category.UserId != userId) throw new Exception("Category not found");
+        if (category == null || category.UserId != userId) throw new CustomException(404, "Category not found");
         var oldValue = new { category.Name, category.Color };
         category.Name = dto.Name;
         category.Color = dto.Color;
@@ -71,12 +73,14 @@ public class CategoryService(IRepository<Category> categoryRepository, IAuditLog
 
     public async Task<List<GetCategoryDto>> GetAllAsync(Guid userId)
     {
-        var categories = await _categoryRepository.GetAllAsync(c => c.UserId == userId);
-        return categories.Select(c => new GetCategoryDto
-        {
-            Id = c.Id,
-            Name = c.Name,
-            Color = c.Color
-        }).ToList();
+        return await _categoryRepository.Query(c => c.UserId == userId)
+                                        .AsNoTracking()
+                                        .Select(c => new GetCategoryDto
+                                        {
+                                            Id = c.Id,
+                                            Name = c.Name,
+                                            Color = c.Color
+                                        })
+                                        .ToListAsync();
     }
 } 

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -38,25 +39,26 @@ public class TransactionIntegrationTests
 
         // Create
         var createDto = new CreateTransactionDto { Amount = 100, Type = Domain.Enums.TransactionType.Income, CategoryId = category.Id, Note = "Test" };
-        var created = await service.CreateAsync(createDto);
+        var created = await service.CreateAsync(userId,createDto);
         Assert.Equal(100, created.Amount);
-        Assert.Equal(category.Id, created.CategoryId);
+        Assert.Equal(category.Id, created.Category.Id);
 
         // Update
-        var updateDto = new UpdateTransactionDto { Amount = 150, Type = Domain.Enums.TransactionType.Income, CategoryId = category.Id, Note = "Updated", RowVersion = db.Transactions.Find(created.Id)!.RowVersion };
-        var updated = await service.UpdateAsync(created.Id, updateDto);
+        var rowversion = db.Transactions.FirstOrDefault(t => t.Id == created.Id)!.RowVersion;
+        var updateDto = new UpdateTransactionDto { Amount = 150, Type = Domain.Enums.TransactionType.Income, CategoryId = category.Id, Note = "Updated", RowVersion = db.Transactions.FirstOrDefault(t => t.Id == created.Id)!.RowVersion };
+        var updated = await service.UpdateAsync(userId,created.Id, updateDto);
         Assert.Equal(150, updated.Amount);
         Assert.Equal("Updated", updated.Note);
 
         // Summary
         var now = DateTime.UtcNow;
-        var summary = await service.GetMonthlySummaryAsync( now.Year, now.Month);
+        var summary = await service.GetMonthlySummaryAsync(userId, now.Year, now.Month);
         Assert.Equal(150, summary.TotalIncome);
         Assert.Equal(0, summary.TotalExpense);
         Assert.Equal(150, summary.Balance);
 
         // Delete
-        var deleted = await service.DeleteAsync(created.Id);
+        var deleted = await service.DeleteAsync(userId,created.Id);
         Assert.True(deleted);
     }
 } 

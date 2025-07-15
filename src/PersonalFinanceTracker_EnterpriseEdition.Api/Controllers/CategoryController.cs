@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Server.IIS;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Abstractions;
 using PersonalFinanceTracker_EnterpriseEdition.Application.DTOs.Categories;
+using PersonalFinanceTracker_EnterpriseEdition.Application.Helpers;
 using System.Security.Claims;
 
 namespace PersonalFinanceTracker_EnterpriseEdition.Api.Controllers;
@@ -9,15 +11,11 @@ namespace PersonalFinanceTracker_EnterpriseEdition.Api.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Authorize(Policy = "UserOnly")]
-public class CategoryController : ControllerBase
+public class CategoryController(ICategoryService categoryService) : ControllerBase
 {
-    private readonly ICategoryService _categoryService;
-    public CategoryController(ICategoryService categoryService)
-    {
-        _categoryService = categoryService;
-    }
+    private readonly ICategoryService _categoryService = categoryService;
 
-    private Guid GetUserId() => Guid.Parse(User.FindFirstValue("Id")!);
+    private static Guid GetUserId() => HttpContextHelper.UserId;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()

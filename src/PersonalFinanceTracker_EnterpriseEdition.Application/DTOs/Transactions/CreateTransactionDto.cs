@@ -7,5 +7,5 @@ public class CreateTransactionDto
     public decimal Amount { get; set; }
     public TransactionType Type { get; set; }
     public Guid CategoryId { get; set; }
-    public string? Note { get; set; }
+    public string Note { get; set; }
 } 

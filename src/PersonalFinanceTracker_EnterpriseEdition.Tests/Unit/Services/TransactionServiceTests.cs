@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using Moq;
@@ -28,16 +29,16 @@ public class TransactionServiceTests
         var dto = new CreateTransactionDto { Amount = 100, Type = Domain.Enums.TransactionType.Income, CategoryId = Guid.NewGuid(), Note = "Test" };
         _transactionRepoMock.Setup(r => r.AddAsync(It.IsAny<Transaction>())).ReturnsAsync((Transaction t) => t);
         _transactionRepoMock.Setup(r => r.SaveChangesAsync()).ReturnsAsync(1);
-        _categoryRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync(new Category { Id = dto.CategoryId, Name = "TestCat" });
+        _categoryRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), null)).ReturnsAsync(new Category { Id = dto.CategoryId, Name = "TestCat" });
 
         // Act
-        var result = await service.CreateAsync(dto);
+        var result = await service.CreateAsync(userId,dto);
 
         // Assert
         Assert.Equal(dto.Amount, result.Amount);
         Assert.Equal(dto.Type, result.Type);
-        Assert.Equal(dto.CategoryId, result.CategoryId);
-        Assert.Equal("TestCat", result.CategoryName);
+        Assert.Equal(dto.CategoryId, result.Category.Id);
+        Assert.Equal("TestCat", result.Category.Name);
     }
 
     [Fact]
@@ -52,12 +53,12 @@ public class TransactionServiceTests
             new Transaction { UserId = userId, CreatedAt = new DateTime(year, month, 1), Amount = 200, Type = Domain.Enums.TransactionType.Income },
             new Transaction { UserId = userId, CreatedAt = new DateTime(year, month, 2), Amount = 50, Type = Domain.Enums.TransactionType.Expense }
         };
-        _transactionRepoMock.Setup(r => r.Query(It.IsAny<System.Linq.Expressions.Expression<Func<Transaction, bool>>>()))
-            .Returns((System.Linq.Expressions.Expression<Func<Transaction, bool>> pred) => transactions.AsQueryable().Where(pred));
+        _transactionRepoMock.Setup(r => r.Query(It.IsAny<Expression<Func<Transaction, bool>>>(), null))
+            .Returns((System.Linq.Expressions.Expression<Func<Transaction, bool>> pred, string[] includes) => transactions.AsQueryable().Where(pred));
         var service = new TransactionService(_transactionRepoMock.Object, _categoryRepoMock.Object, _auditLogServiceMock.Object, _memoryCache);
 
         // Act
-        var summary = await service.GetMonthlySummaryAsync(year, month);
+        var summary = await service.GetMonthlySummaryAsync(userId,year, month);
 
         // Assert
         Assert.Equal(200, summary.TotalIncome);
@@ -78,12 +79,12 @@ public class TransactionServiceTests
             new Transaction { UserId = userId, CreatedAt = now, Amount = 200, Type = Domain.Enums.TransactionType.Income },
             new Transaction { UserId = userId, CreatedAt = now, Amount = 50, Type = Domain.Enums.TransactionType.Expense }
         };
-        _transactionRepoMock.Setup(r => r.Query(It.IsAny<System.Linq.Expressions.Expression<Func<Transaction, bool>>>()))
-            .Returns((System.Linq.Expressions.Expression<Func<Transaction, bool>> pred) => transactions.AsQueryable().Where(pred));
+        _transactionRepoMock.Setup(r => r.Query(It.IsAny<Expression<Func<Transaction, bool>>>(), null))
+            .Returns((System.Linq.Expressions.Expression<Func<Transaction, bool>> pred, string[] includes) => transactions.AsQueryable().Where(pred));
         var service = new TransactionService(_transactionRepoMock.Object, _categoryRepoMock.Object, _auditLogServiceMock.Object, _memoryCache);
 
         // Act
-        var trend = await service.GetMonthlyTrendAsync(2);
+        var trend = await service.GetMonthlyTrendAsync(userId,2);
 
         // Assert
         Assert.Equal(2, trend.Count);

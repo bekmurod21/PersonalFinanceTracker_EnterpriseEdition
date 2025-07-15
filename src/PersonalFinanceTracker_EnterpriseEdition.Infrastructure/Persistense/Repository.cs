@@ -10,22 +10,19 @@ public class Repository<T>(ApplicationDbContext dbContext) : IRepository<T> wher
     private readonly ApplicationDbContext _dbContext = dbContext;
     private readonly DbSet<T> _dbSet = dbContext.Set<T>();
 
-    public async Task<T?> GetByIdAsync(Guid id)
-        => await _dbSet.FirstOrDefaultAsync(e => e.Id == id && !e.IsDeleted);
+    public async Task<T?> GetByIdAsync(Guid id, string[]? includes = null)
+        => await Query(e => e.Id == id,includes).FirstOrDefaultAsync();
 
-    public async Task<List<T>> GetAllAsync(Expression<Func<T, bool>>? predicate = null)
+    public IQueryable<T> Query(Expression<Func<T, bool>>? predicate = null, string[]? includes = null)
     {
-        var query = _dbSet.AsQueryable().Where(e => !e.IsDeleted);
+        var query = _dbSet.Where(e => !e.IsDeleted);
         if (predicate != null)
             query = query.Where(predicate);
-        return await query.ToListAsync();
-    }
-
-    public IQueryable<T> Query(Expression<Func<T, bool>>? predicate = null)
-    {
-        var query = _dbSet.AsQueryable().Where(e => !e.IsDeleted);
-        if (predicate != null)
-            query = query.Where(predicate);
+        if (includes != null)
+        {
+            foreach(var include in includes)
+                query = query.Include(include);
+        }
         return query;
     }
 
