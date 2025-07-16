@@ -1,5 +1,3 @@
-using PersonalFinanceTracker_EnterpriseEdition.Domain.Entities;
-
 namespace PersonalFinanceTracker_EnterpriseEdition.Application.Abstractions;
 
 public interface IAuditLogService

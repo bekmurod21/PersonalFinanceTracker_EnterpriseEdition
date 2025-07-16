@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
 namespace PersonalFinanceTracker_EnterpriseEdition.Api.Helpers;
@@ -71,20 +70,12 @@ public static class LogHelper
         return new DisposableOperation(logger, operationName, userId, stopwatch);
     }
 
-    private class DisposableOperation : IDisposable
+    private class DisposableOperation(ILogger logger, string operationName, string userId, Stopwatch stopwatch) : IDisposable
     {
-        private readonly ILogger _logger;
-        private readonly string _operationName;
-        private readonly string _userId;
-        private readonly Stopwatch _stopwatch;
-
-        public DisposableOperation(ILogger logger, string operationName, string userId, Stopwatch stopwatch)
-        {
-            _logger = logger;
-            _operationName = operationName;
-            _userId = userId;
-            _stopwatch = stopwatch;
-        }
+        private readonly ILogger _logger = logger;
+        private readonly string _operationName = operationName;
+        private readonly string _userId = userId;
+        private readonly Stopwatch _stopwatch = stopwatch;
 
         public void Dispose()
         {

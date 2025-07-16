@@ -1,6 +1,7 @@
  using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using PersonalFinanceTracker_EnterpriseEdition.Infrastructure.Persistense;
+using PersonalFinanceTracker_EnterpriseEdition.Tests;
 
 public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
 {

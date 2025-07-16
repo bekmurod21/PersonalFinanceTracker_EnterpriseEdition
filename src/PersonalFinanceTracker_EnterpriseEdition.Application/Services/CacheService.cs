@@ -1,8 +1,5 @@
-﻿using DocumentFormat.OpenXml.Bibliography;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Distributed;
+﻿using Microsoft.Extensions.Caching.Distributed;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Abstractions;
-using PersonalFinanceTracker_EnterpriseEdition.Application.DTOs.Transactions;
 using System.Text.Json;
 
 namespace PersonalFinanceTracker_EnterpriseEdition.Application.Services;

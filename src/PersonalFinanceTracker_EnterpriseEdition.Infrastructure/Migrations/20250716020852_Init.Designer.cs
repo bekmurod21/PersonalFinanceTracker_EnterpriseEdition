@@ -12,7 +12,7 @@ using PersonalFinanceTracker_EnterpriseEdition.Infrastructure.Persistense;
 namespace PersonalFinanceTracker_EnterpriseEdition.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250716003857_Init")]
+    [Migration("20250716020852_Init")]
     partial class Init
     {
         /// <inheritdoc />
@@ -36,12 +36,6 @@ namespace PersonalFinanceTracker_EnterpriseEdition.Infrastructure.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedById")
-                        .HasColumnType("uuid");
 
                     b.Property<Guid>("EntityId")
                         .HasColumnType("uuid");
@@ -80,12 +74,6 @@ namespace PersonalFinanceTracker_EnterpriseEdition.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedById")
-                        .HasColumnType("uuid");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
@@ -118,12 +106,6 @@ namespace PersonalFinanceTracker_EnterpriseEdition.Infrastructure.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedById")
-                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -162,12 +144,6 @@ namespace PersonalFinanceTracker_EnterpriseEdition.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedById")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("Email")
                         .HasColumnType("text");
 
@@ -192,11 +168,11 @@ namespace PersonalFinanceTracker_EnterpriseEdition.Infrastructure.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("a822b15c-4928-4099-963e-29cf0f738cbc"),
-                            CreatedAt = new DateTime(2025, 7, 16, 0, 38, 56, 238, DateTimeKind.Utc).AddTicks(2695),
+                            Id = new Guid("77ab5552-adf9-425b-aa29-0431ee2cad74"),
+                            CreatedAt = new DateTime(2025, 7, 16, 2, 8, 51, 13, DateTimeKind.Utc).AddTicks(8707),
                             Email = "boqiyev482@gmail.com",
                             IsDeleted = false,
-                            Password = "$2b$10$EMZCaNpL1g3ru6Vr99vmjOEUrH7NvTgxkCLbcr.fd8R4W5qFV8Xsi",
+                            Password = "$2b$10$qHWubXj.G1eT9/eGNz/INuDwhfg/cPT1oR.HBT09QnKNKeG/GTpva",
                             Role = 20
                         });
                 });

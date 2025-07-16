@@ -12,16 +12,10 @@ using PersonalFinanceTracker_EnterpriseEdition.Domain.Exceptions;
 
 namespace PersonalFinanceTracker_EnterpriseEdition.Infrastructure.Services;
 
-public class AuthService : IAuthService
+public class AuthService(IConfiguration configuration, IRepository<User> userRepository) : IAuthService
 {
-    private readonly IConfiguration _configuration;
-    private readonly IRepository<User> _userRepository;
-
-    public AuthService(IConfiguration configuration, IRepository<User> userRepository)
-    {
-        _configuration = configuration;
-        _userRepository = userRepository;
-    }
+    private readonly IConfiguration _configuration = configuration;
+    private readonly IRepository<User> _userRepository = userRepository;
 
     public string GenerateJwtToken(User user)
     {

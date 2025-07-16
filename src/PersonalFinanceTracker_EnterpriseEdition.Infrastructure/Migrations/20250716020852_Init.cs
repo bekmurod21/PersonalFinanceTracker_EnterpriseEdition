@@ -21,9 +21,7 @@ namespace PersonalFinanceTracker_EnterpriseEdition.Infrastructure.Migrations
                     Username = table.Column<string>(type: "text", nullable: true),
                     Role = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedById = table.Column<Guid>(type: "uuid", nullable: true)
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -42,9 +40,7 @@ namespace PersonalFinanceTracker_EnterpriseEdition.Infrastructure.Migrations
                     OldValue = table.Column<string>(type: "text", nullable: true),
                     NewValue = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedById = table.Column<Guid>(type: "uuid", nullable: true)
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -66,9 +62,7 @@ namespace PersonalFinanceTracker_EnterpriseEdition.Infrastructure.Migrations
                     Color = table.Column<string>(type: "text", nullable: true),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedById = table.Column<Guid>(type: "uuid", nullable: true)
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -93,9 +87,7 @@ namespace PersonalFinanceTracker_EnterpriseEdition.Infrastructure.Migrations
                     Note = table.Column<string>(type: "text", nullable: true),
                     RowVersion = table.Column<byte[]>(type: "bytea", rowVersion: true, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedById = table.Column<Guid>(type: "uuid", nullable: true)
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -116,8 +108,8 @@ namespace PersonalFinanceTracker_EnterpriseEdition.Infrastructure.Migrations
 
             migrationBuilder.InsertData(
                 table: "Users",
-                columns: new[] { "Id", "CreatedAt", "DeletedAt", "DeletedById", "Email", "IsDeleted", "Password", "Role", "Username" },
-                values: new object[] { new Guid("a822b15c-4928-4099-963e-29cf0f738cbc"), new DateTime(2025, 7, 16, 0, 38, 56, 238, DateTimeKind.Utc).AddTicks(2695), null, null, "boqiyev482@gmail.com", false, "$2b$10$EMZCaNpL1g3ru6Vr99vmjOEUrH7NvTgxkCLbcr.fd8R4W5qFV8Xsi", 20, null });
+                columns: new[] { "Id", "CreatedAt", "Email", "IsDeleted", "Password", "Role", "Username" },
+                values: new object[] { new Guid("77ab5552-adf9-425b-aa29-0431ee2cad74"), new DateTime(2025, 7, 16, 2, 8, 51, 13, DateTimeKind.Utc).AddTicks(8707), "boqiyev482@gmail.com", false, "$2b$10$qHWubXj.G1eT9/eGNz/INuDwhfg/cPT1oR.HBT09QnKNKeG/GTpva", 20, null });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AuditLogs_UserId",

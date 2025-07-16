@@ -2,8 +2,6 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Caching.Memory;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Abstractions;
 using PersonalFinanceTracker_EnterpriseEdition.Application.DTOs.Transactions;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Services;
@@ -52,7 +50,7 @@ public class TransactionIntegrationTests
             Type = Domain.Enums.TransactionType.Income, 
             CategoryId = category.Id, 
             Note = "Updated", 
-            RowVersion = dbTransaction.RowVersion ?? new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 } // Default RowVersion for testing
+            RowVersion = dbTransaction.RowVersion ?? new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 } 
         };
         var updated = await service.UpdateAsync(userId, created.Id, updateDto);
         Assert.Equal(150, updated.Amount);

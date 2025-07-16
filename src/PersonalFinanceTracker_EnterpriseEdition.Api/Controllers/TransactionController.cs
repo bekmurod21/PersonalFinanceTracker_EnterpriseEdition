@@ -4,7 +4,6 @@ using PersonalFinanceTracker_EnterpriseEdition.Application.Abstractions;
 using PersonalFinanceTracker_EnterpriseEdition.Application.DTOs.Transactions;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Helpers;
 using PersonalFinanceTracker_EnterpriseEdition.Domain.Configurations;
-using System.Security.Claims;
 
 namespace PersonalFinanceTracker_EnterpriseEdition.Api.Controllers;
 
