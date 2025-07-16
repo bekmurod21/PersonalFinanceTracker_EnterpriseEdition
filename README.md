@@ -45,7 +45,7 @@ A comprehensive personal finance management system built with .NET 9.0, featurin
 1. **Loyihani yuklab olish**
 
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/bekmurod21/PersonalFinanceTracker_EnterpriseEdition.git
    cd PersonalFinanceTracker_EnterpriseEdition
    ```
 
