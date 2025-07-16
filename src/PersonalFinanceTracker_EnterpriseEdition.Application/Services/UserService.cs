@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Abstractions;
 using PersonalFinanceTracker_EnterpriseEdition.Application.DTOs.Users;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Extensions;
+using PersonalFinanceTracker_EnterpriseEdition.Application.Helpers;
 using PersonalFinanceTracker_EnterpriseEdition.Domain.Configurations;
 using PersonalFinanceTracker_EnterpriseEdition.Domain.Entities;
 using PersonalFinanceTracker_EnterpriseEdition.Domain.Exceptions;
@@ -69,6 +70,10 @@ public class UserService(IRepository<User> userRepository, IAuditLogService audi
         var oldValue = new { user.Email, user.Username };
         user.Email = dto.Email;
         user.Username = dto.Username;
+        if (!string.IsNullOrEmpty(dto.Password))
+        {
+            user.Password = dto.Password.Hash();
+        }
 
         await _userRepository.SaveChangesAsync();
         await _auditLogService.LogUpdateAsync(nameof(User), user.Id, userId, oldValue, user);

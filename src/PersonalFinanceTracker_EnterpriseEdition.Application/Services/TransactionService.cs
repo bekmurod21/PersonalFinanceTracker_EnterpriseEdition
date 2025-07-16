@@ -3,7 +3,6 @@ using PersonalFinanceTracker_EnterpriseEdition.Application.Abstractions;
 using PersonalFinanceTracker_EnterpriseEdition.Application.DTOs.Transactions;
 using PersonalFinanceTracker_EnterpriseEdition.Domain.Configurations;
 using PersonalFinanceTracker_EnterpriseEdition.Domain.Entities;
-using Microsoft.Extensions.Caching.Distributed;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Extensions;
 using PersonalFinanceTracker_EnterpriseEdition.Domain.Exceptions;
 using PersonalFinanceTracker_EnterpriseEdition.Application.DTOs.Categories;
@@ -37,6 +36,11 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
         await _transactionRepository.AddAsync(transaction);
         await _transactionRepository.SaveChangesAsync();
         await _auditLogService.LogCreateAsync(nameof(Transaction), transaction.Id, userId, transaction);
+
+        List<string> keys = [ $"summary:{userId}", $"topcat:{userId}", $"trend:{userId}" ];
+        foreach(var key in keys)
+            await _cacheService.DeleteAsync(key);
+
         return new GetTransactionDto
         {
             Id = transaction.Id,
@@ -58,7 +62,6 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
         var transaction = await _transactionRepository.GetByIdAsync(id);
         if (transaction == null || transaction.UserId != userId) throw new CustomException(404,"Transaction not found");
         
-        // Null check for RowVersion
         if (transaction.RowVersion != null && dto.RowVersion != null && !transaction.RowVersion.SequenceEqual(dto.RowVersion))
             throw new CustomException(409,"Transaction has been modified by another process (concurrency conflict)");
             
@@ -75,6 +78,10 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
         await _transactionRepository.UpdateAsync(transaction);
         await _transactionRepository.SaveChangesAsync();
         await _auditLogService.LogUpdateAsync(nameof(Transaction), transaction.Id, userId, oldValue, transaction);
+
+        List<string> keys = [ $"summary:{userId}", $"topcat:{userId}", $"trend:{userId}" ];
+        foreach (var key in keys)
+            await _cacheService.DeleteAsync(key);
 
         return new GetTransactionDto
         {
@@ -100,6 +107,11 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
         await _transactionRepository.DeleteAsync(id);
         await _transactionRepository.SaveChangesAsync();
         await _auditLogService.LogDeleteAsync(nameof(Transaction), transaction.Id, userId, oldValue);
+
+        List<string> keys = [ $"summary:{userId}", $"topcat:{userId}", $"trend:{userId}" ];
+        foreach (var key in keys)
+            await _cacheService.DeleteAsync(key);
+
         return true;
     }
 

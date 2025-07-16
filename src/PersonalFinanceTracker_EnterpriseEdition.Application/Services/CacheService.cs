@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Caching.Distributed;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Abstractions;
+using StackExchange.Redis;
 using System.Text.Json;
 
 namespace PersonalFinanceTracker_EnterpriseEdition.Application.Services;
@@ -31,6 +32,22 @@ public class CacheService(IDistributedCache cache) : ICacheService
         catch
         {
             return default;
+        }
+    }
+    public async Task DeleteAsync(string key)
+    {
+        try
+        {
+            var redis = ConnectionMultiplexer.Connect("redis");
+            var server = redis.GetServer("redis:6379");
+            var keys = server.KeysAsync(pattern: "*").ToBlockingEnumerable();
+            var deletedKeys = keys.Where(k => k.ToString().Contains(key));
+            foreach (var k in deletedKeys)
+                await cache?.RemoveAsync(k);
+        }
+        catch
+        {
+            await Task.CompletedTask;
         }
     }
 }
