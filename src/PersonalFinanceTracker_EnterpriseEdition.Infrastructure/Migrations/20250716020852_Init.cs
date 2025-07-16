@@ -109,7 +109,7 @@ namespace PersonalFinanceTracker_EnterpriseEdition.Infrastructure.Migrations
             migrationBuilder.InsertData(
                 table: "Users",
                 columns: new[] { "Id", "CreatedAt", "Email", "IsDeleted", "Password", "Role", "Username" },
-                values: new object[] { new Guid("77ab5552-adf9-425b-aa29-0431ee2cad74"), new DateTime(2025, 7, 16, 2, 8, 51, 13, DateTimeKind.Utc).AddTicks(8707), "boqiyev482@gmail.com", false, "$2b$10$qHWubXj.G1eT9/eGNz/INuDwhfg/cPT1oR.HBT09QnKNKeG/GTpva", 20, null });
+                values: new object[] { new Guid("77ab5552-adf9-425b-aa29-0431ee2cad74"), new DateTime(2025, 7, 16, 2, 8, 51, 13, DateTimeKind.Utc).AddTicks(8707), "boqiyev482@gmail.com", false, "$2b$10$qHWubXj.G1eT9/eGNz/INuDwhfg/cPT1oR.HBT09QnKNKeG/GTpva", 20, "Shunchaki21" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AuditLogs_UserId",

@@ -14,7 +14,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasData(new User()
         {
             Id = Guid.NewGuid(), Email = "boqiyev482@gmail.com", Password = "Shunchaki21".Hash(),
-            Role = ERole.Admin
+            Role = ERole.Admin,Username = "Shunchaki"
         });
     }
 }
