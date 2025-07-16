@@ -14,12 +14,12 @@ namespace PersonalFinanceTracker_EnterpriseEdition.Application.Services;
 public class TransactionService(IRepository<Transaction> transactionRepository,
                                 IRepository<Category> categoryRepository,
                                 IAuditLogService auditLogService,
-                                IDistributedCache cache) : ITransactionService
+                                ICacheService cacheService) : ITransactionService
 {
     private readonly IRepository<Transaction> _transactionRepository = transactionRepository;
     private readonly IRepository<Category> _categoryRepository = categoryRepository;
     private readonly IAuditLogService _auditLogService = auditLogService;
-    private readonly IDistributedCache _cache = cache;
+    private readonly ICacheService _cacheService = cacheService;
 
     public async Task<GetTransactionDto> CreateAsync(Guid userId,CreateTransactionDto dto)
     {
@@ -57,8 +57,11 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
     {
         var transaction = await _transactionRepository.GetByIdAsync(id);
         if (transaction == null || transaction.UserId != userId) throw new CustomException(404,"Transaction not found");
-        if (!transaction.RowVersion.SequenceEqual(dto.RowVersion))
+        
+        // Null check for RowVersion
+        if (transaction.RowVersion != null && dto.RowVersion != null && !transaction.RowVersion.SequenceEqual(dto.RowVersion))
             throw new CustomException(409,"Transaction has been modified by another process (concurrency conflict)");
+            
         var category = await _categoryRepository.GetByIdAsync(dto.CategoryId);
         if (category is null || category.UserId != userId)
             throw new CustomException(404, "Category not found");
@@ -162,9 +165,9 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
     public async Task<TransactionSummaryDto> GetMonthlySummaryAsync(Guid userId, int year, int month)
     {
         var cacheKey = $"summary:{userId}:{year}:{month}";
-        var cachedBytes = await _cache.GetAsync(cacheKey);
+        var cachedBytes = await _cacheService.GetCacheAsync<TransactionSummaryDto>(cacheKey);
         if (cachedBytes != null)
-            return System.Text.Json.JsonSerializer.Deserialize<TransactionSummaryDto>(cachedBytes)!;
+            return cachedBytes;
         var query = _transactionRepository.Query(t => t.UserId == userId && t.CreatedAt.Year == year && t.CreatedAt.Month == month);
         var totalIncome = await query.Where(t => t.Type == TransactionType.Income).SumAsync(t => t.Amount);
         var totalExpense = await query.Where(t => t.Type == TransactionType.Expense).SumAsync(t => t.Amount);
@@ -173,17 +176,16 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
             TotalIncome = totalIncome,
             TotalExpense = totalExpense
         };
-        var bytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(result);
-        await _cache.SetAsync(cacheKey, bytes, new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) });
+        await _cacheService.CreateCacheAsync(cacheKey,result);
         return result;
     }
 
     public async Task<List<CategoryExpenseStatDto>> GetTopCategoryExpensesAsync(Guid userId, int year, int month, int top = 3)
     {
         var cacheKey = $"topcat:{userId}:{year}:{month}:{top}";
-        var cachedBytes = await _cache.GetAsync(cacheKey);
+        var cachedBytes = await _cacheService.GetCacheAsync<List<CategoryExpenseStatDto>>(cacheKey);
         if (cachedBytes != null)
-            return System.Text.Json.JsonSerializer.Deserialize<List<CategoryExpenseStatDto>>(cachedBytes)!;
+            return cachedBytes;
         var query = _transactionRepository.Query(t => t.UserId == userId && t.CreatedAt.Year == year && t.CreatedAt.Month == month && t.Type == TransactionType.Expense);
         var stats = await query.GroupBy(t => t.CategoryId)
             .Select(g => new { CategoryId = g.Key, TotalExpense = g.Sum(t => t.Amount) })
@@ -191,28 +193,26 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
             .Take(top)
             .ToListAsync();
 
-        var result = await _categoryRepository.Query(c => stats.Select(s => s.CategoryId).Contains(c.Id))
-            .Select(s => new CategoryExpenseStatDto
-            {
-                Id = s.Id,
-                Name = s.Name,
-                TotalExpense = stats.Where(stat=> stat.CategoryId == s.Id)
-                                    .Select(stat => stat.TotalExpense)
-                                    .FirstOrDefault()
-            })
-            .ToListAsync();
+        var categoryIds = stats.Select(s => s.CategoryId).ToList();
+        var categories = await _categoryRepository.Query(c => categoryIds.Contains(c.Id))
+                                                              .ToListAsync();
+        var result = categories.Select(c => new CategoryExpenseStatDto
+        {
+            Id = c.Id,
+            Name = c.Name,
+            TotalExpense = stats.FirstOrDefault(stat => stat.CategoryId == c.Id)?.TotalExpense ?? 0
+        }).OrderByDescending(s =>s.TotalExpense).ToList();
 
-        var bytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(result);
-        await _cache.SetAsync(cacheKey, bytes, new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) });
+        await _cacheService.CreateCacheAsync(cacheKey, result);
         return result;
     }
 
     public async Task<List<MonthlyTrendDto>> GetMonthlyTrendAsync(Guid userId,int monthsCount = 6)
     {
         var cacheKey = $"trend:{userId}:{monthsCount}";
-        var cachedBytes = await _cache.GetAsync(cacheKey);
+        var cachedBytes = await _cacheService.GetCacheAsync<List<MonthlyTrendDto>>(cacheKey);
         if (cachedBytes != null)
-            return System.Text.Json.JsonSerializer.Deserialize<List<MonthlyTrendDto>>(cachedBytes)!;
+            return cachedBytes;
         var fromDate = DateTime.UtcNow.AddMonths(-monthsCount + 1);
         var query = _transactionRepository.Query(t => t.UserId == userId && t.CreatedAt >= fromDate);
         var trends = await query.GroupBy(t => new { t.CreatedAt.Year, t.CreatedAt.Month })
@@ -226,8 +226,7 @@ public class TransactionService(IRepository<Transaction> transactionRepository,
             .OrderBy(x => x.Year)
             .ThenBy(x => x.Month)
             .ToListAsync();
-        var bytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(trends);
-        await _cache.SetAsync(cacheKey, bytes, new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) });
+        await _cacheService.CreateCacheAsync(cacheKey,trends);
         return trends;
     }
 } 

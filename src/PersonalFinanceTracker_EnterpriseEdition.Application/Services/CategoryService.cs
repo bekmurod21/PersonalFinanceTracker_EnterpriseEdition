@@ -65,6 +65,7 @@ public class CategoryService(IRepository<Category> categoryRepository, IAuditLog
     {
         var category = await _categoryRepository.GetByIdAsync(id);
         if (category == null || category.UserId != userId) return null;
+        
         return new GetCategoryDto
         {
             Id = category.Id,

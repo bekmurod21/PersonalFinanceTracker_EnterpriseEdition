@@ -31,7 +31,7 @@ public class TransactionIntegrationTests
         var transactionRepo = new Repository<Transaction>(db);
         var categoryRepo = new Repository<Category>(db);
         var auditLogService = new Moq.Mock<IAuditLogService>().Object;
-        var cache = new MemoryDistributedCache(new Microsoft.Extensions.Options.OptionsWrapper<MemoryDistributedCacheOptions>(new MemoryDistributedCacheOptions()));
+        var cache = new Moq.Mock<ICacheService>().Object;
         var userId = Guid.NewGuid();
         var category = new Category { Id = Guid.NewGuid(), Name = "TestCat", Color = "#fff", UserId = userId };
         db.Categories.Add(category);
@@ -47,8 +47,14 @@ public class TransactionIntegrationTests
         // Update
         db.Entry(db.Transactions.First()).Reload();
         var dbTransaction = db.Transactions.Find(created.Id)!;
-        var updateDto = new UpdateTransactionDto { Amount = 150, Type = Domain.Enums.TransactionType.Income, CategoryId = category.Id, Note = "Updated", RowVersion = dbTransaction.RowVersion };
-        var updated = await service.UpdateAsync(userId,created.Id, updateDto);
+        var updateDto = new UpdateTransactionDto { 
+            Amount = 150, 
+            Type = Domain.Enums.TransactionType.Income, 
+            CategoryId = category.Id, 
+            Note = "Updated", 
+            RowVersion = dbTransaction.RowVersion ?? new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 } // Default RowVersion for testing
+        };
+        var updated = await service.UpdateAsync(userId, created.Id, updateDto);
         Assert.Equal(150, updated.Amount);
         Assert.Equal("Updated", updated.Note);
 

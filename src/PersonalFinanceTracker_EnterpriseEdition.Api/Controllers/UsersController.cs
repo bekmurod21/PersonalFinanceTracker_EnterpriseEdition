@@ -15,21 +15,21 @@ namespace PersonalFinanceTracker_EnterpriseEdition.Api.Controllers
         private readonly IUserService _userService = userService;
 
         [HttpGet, Authorize(Roles = "Admin")]
-        public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] PaginationParams @params)
+        public async Task<ActionResult<List<GetUserDto>>> GetAll([FromQuery] string? search, [FromQuery] PaginationParams @params)
         {
             var users = await _userService.GetAllAsync(search, @params);
             return Ok(users);
         }
 
         [HttpGet("{id}"), Authorize(Roles = "Admin")]
-        public async Task<IActionResult> GetById(Guid id)
+        public async Task<ActionResult<GetUserDto>> GetById(Guid id)
         {
             var user = await _userService.GetByIdAsync(id);
             return Ok(user);
         }
 
         [HttpDelete("{id}"), Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Delete(Guid id)
+        public async Task<ActionResult> Delete(Guid id)
         {
             var result = await _userService.DeleteAsync(id);
             if (!result) return NotFound();
@@ -37,7 +37,7 @@ namespace PersonalFinanceTracker_EnterpriseEdition.Api.Controllers
         }
 
         [HttpGet("me"),Authorize]
-        public async Task<IActionResult> GetMe()
+        public async Task<ActionResult<GetUserForMeDto>> GetMe()
         {
             var userId = GetUserId();
             var user = await _userService.GetForMeAsync(userId);
@@ -45,7 +45,7 @@ namespace PersonalFinanceTracker_EnterpriseEdition.Api.Controllers
         }
 
         [HttpPut("me"),Authorize]
-        public async Task<IActionResult> UpdateMe([FromBody] UpdateUserDto dto)
+        public async Task<ActionResult<GetUserForMeDto>> UpdateMe([FromBody] UpdateUserDto dto)
         {
             var userId = GetUserId();
             var user = await _userService.UpdateMeAsync(userId, dto);

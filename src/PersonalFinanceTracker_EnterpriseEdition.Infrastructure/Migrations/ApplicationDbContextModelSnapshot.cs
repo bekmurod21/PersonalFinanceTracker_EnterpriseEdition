@@ -189,11 +189,11 @@ namespace PersonalFinanceTracker_EnterpriseEdition.Infrastructure.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("4342af7d-9c75-47d9-a3d4-8c33898c4e77"),
-                            CreatedAt = new DateTime(2025, 7, 15, 14, 24, 3, 68, DateTimeKind.Utc).AddTicks(8431),
+                            Id = new Guid("a822b15c-4928-4099-963e-29cf0f738cbc"),
+                            CreatedAt = new DateTime(2025, 7, 16, 0, 38, 56, 238, DateTimeKind.Utc).AddTicks(2695),
                             Email = "boqiyev482@gmail.com",
                             IsDeleted = false,
-                            Password = "$2b$10$l8.kb93NELpcC04DNcMdNOCx5qunKEBhGjZSy1NSL0THggMCR3etG",
+                            Password = "$2b$10$EMZCaNpL1g3ru6Vr99vmjOEUrH7NvTgxkCLbcr.fd8R4W5qFV8Xsi",
                             Role = 20
                         });
                 });

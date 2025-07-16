@@ -8,9 +8,10 @@ using PersonalFinanceTracker_EnterpriseEdition.Domain.Exceptions;
 
 namespace PersonalFinanceTracker_EnterpriseEdition.Application.Services;
 
-public class UserService(IRepository<User> userRepository) : IUserService
+public class UserService(IRepository<User> userRepository, IAuditLogService auditLogService) : IUserService
 {
     private readonly IRepository<User> _userRepository = userRepository;
+    private readonly IAuditLogService _auditLogService = auditLogService;
 
     public async Task<List<GetUserDto>> GetAllAsync(string search, PaginationParams @params)
     {
@@ -35,6 +36,7 @@ public class UserService(IRepository<User> userRepository) : IUserService
     {
         var user = await _userRepository.GetByIdAsync(id)
             ?? throw new CustomException(404, "User not found");
+        
         return new GetUserDto
         {
             Id = user.Id,
@@ -49,6 +51,7 @@ public class UserService(IRepository<User> userRepository) : IUserService
     {
         var user = await _userRepository.GetByIdAsync(userId)
             ?? throw new CustomException(404, "User not found");
+        
         return new GetUserForMeDto
         {
             Id = user.Id,
@@ -62,10 +65,14 @@ public class UserService(IRepository<User> userRepository) : IUserService
     {
         var user = await _userRepository.GetByIdAsync(userId)
             ?? throw new CustomException(404, "User not found");
+        
+        var oldValue = new { user.Email, user.Username };
         user.Email = dto.Email;
         user.Username = dto.Username;
 
         await _userRepository.SaveChangesAsync();
+        await _auditLogService.LogUpdateAsync(nameof(User), user.Id, userId, oldValue, user);
+        
         return new GetUserForMeDto
         {
             Id = user.Id,
@@ -77,11 +84,14 @@ public class UserService(IRepository<User> userRepository) : IUserService
 
     public async Task<bool> DeleteAsync(Guid id)
     {
-        var user = await _userRepository.Query(u => u.Id == id)
-                                            .AnyAsync();
-        if (!user) return false;
+        var user = await _userRepository.GetByIdAsync(id);
+        if (user == null) return false;
+        
+        var oldValue = new { user.Email, user.Username, user.Role };
         await _userRepository.DeleteAsync(id);
         await _userRepository.SaveChangesAsync();
+        await _auditLogService.LogDeleteAsync(nameof(User), user.Id, user.Id, oldValue);
+        
         return true;
     }
 } 

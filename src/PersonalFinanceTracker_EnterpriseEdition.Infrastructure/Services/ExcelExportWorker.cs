@@ -1,9 +1,6 @@
-using System;
 using System.Collections.Concurrent;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using PersonalFinanceTracker_EnterpriseEdition.Application.Helpers;
 using PersonalFinanceTracker_EnterpriseEdition.Application.DTOs.Transactions;
 
@@ -29,7 +26,25 @@ public class ExcelExportWorker : BackgroundService
     private static readonly ConcurrentDictionary<string, string> _fileStatus = new();
     private static readonly ConcurrentQueue<TrendExportRequest> _trendQueue = new();
     private static readonly ConcurrentDictionary<string, string> _trendFileStatus = new();
-    private readonly string _exportPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "PersonalFinanceTracker_EnterpriseEdition.Api", "wwwroot", "exports");
+    private readonly ILogger<ExcelExportWorker> _logger;
+    private readonly string _exportPath;
+
+    public ExcelExportWorker(ILogger<ExcelExportWorker> logger)
+    {
+        _logger = logger;
+        
+        var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+        var projectRoot = Directory.GetCurrentDirectory();
+        
+        var wwwrootPath = Path.Combine(projectRoot, "wwwroot", "exports");
+        if (!Directory.Exists(wwwrootPath))
+        {
+            wwwrootPath = Path.Combine(baseDirectory, "wwwroot", "exports");
+        }
+        
+        _exportPath = wwwrootPath;
+        _logger.LogInformation("ExcelExportWorker initialized with export path: {ExportPath}", _exportPath);
+    }
 
     public static void Enqueue(ExportRequest request)
     {
@@ -55,41 +70,75 @@ public class ExcelExportWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        Directory.CreateDirectory(_exportPath);
+        try
+        {
+            if (!Directory.Exists(_exportPath))
+            {
+                Directory.CreateDirectory(_exportPath);
+                _logger.LogInformation("Created export directory: {ExportPath}", _exportPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create export directory: {ExportPath}", _exportPath);
+        }
+
         while (!stoppingToken.IsCancellationRequested)
         {
             if (_queue.TryDequeue(out var request))
             {
-                try
-                {
-                    var bytes = ExcelExportHelper.ExportTopCategoryExpensesToExcel(request.Stats);
-                    var filePath = Path.Combine(_exportPath, request.FileName);
-                    await File.WriteAllBytesAsync(filePath, bytes, stoppingToken);
-                    _fileStatus[request.FileName] = "ready";
-                }
-                catch
-                {
-                    _fileStatus[request.FileName] = "error";
-                }
+                await ProcessExportRequest(request, stoppingToken);
             }
             else if (_trendQueue.TryDequeue(out var trendRequest))
             {
-                try
-                {
-                    var bytes = ExcelExportHelper.ExportMonthlyTrendToExcel(trendRequest.Trends);
-                    var filePath = Path.Combine(_exportPath, trendRequest.FileName);
-                    await File.WriteAllBytesAsync(filePath, bytes, stoppingToken);
-                    _trendFileStatus[trendRequest.FileName] = "ready";
-                }
-                catch
-                {
-                    _trendFileStatus[trendRequest.FileName] = "error";
-                }
+                await ProcessTrendExportRequest(trendRequest, stoppingToken);
             }
             else
             {
                 await Task.Delay(1000, stoppingToken);
             }
+        }
+    }
+
+    private async Task ProcessExportRequest(ExportRequest request, CancellationToken stoppingToken)
+    {
+        try
+        {
+            _logger.LogInformation("Processing export request for file: {FileName}", request.FileName);
+            
+            var bytes = ExcelExportHelper.ExportTopCategoryExpensesToExcel(request.Stats);
+            var filePath = Path.Combine(_exportPath, request.FileName);
+            
+            await File.WriteAllBytesAsync(filePath, bytes, stoppingToken);
+            _fileStatus[request.FileName] = "ready";
+            
+            _logger.LogInformation("Successfully created export file: {FilePath}", filePath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to process export request for file: {FileName}", request.FileName);
+            _fileStatus[request.FileName] = "error";
+        }
+    }
+
+    private async Task ProcessTrendExportRequest(TrendExportRequest request, CancellationToken stoppingToken)
+    {
+        try
+        {
+            _logger.LogInformation("Processing trend export request for file: {FileName}", request.FileName);
+            
+            var bytes = ExcelExportHelper.ExportMonthlyTrendToExcel(request.Trends);
+            var filePath = Path.Combine(_exportPath, request.FileName);
+            
+            await File.WriteAllBytesAsync(filePath, bytes, stoppingToken);
+            _trendFileStatus[request.FileName] = "ready";
+            
+            _logger.LogInformation("Successfully created trend export file: {FilePath}", filePath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to process trend export request for file: {FileName}", request.FileName);
+            _trendFileStatus[request.FileName] = "error";
         }
     }
 } 

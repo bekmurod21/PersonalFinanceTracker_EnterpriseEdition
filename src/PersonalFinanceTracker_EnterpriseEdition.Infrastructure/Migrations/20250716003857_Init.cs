@@ -16,11 +16,9 @@ namespace PersonalFinanceTracker_EnterpriseEdition.Infrastructure.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    FirstName = table.Column<string>(type: "text", nullable: true),
-                    LastName = table.Column<string>(type: "text", nullable: true),
                     Email = table.Column<string>(type: "text", nullable: true),
                     Password = table.Column<string>(type: "text", nullable: true),
-                    UserName = table.Column<string>(type: "text", nullable: true),
+                    Username = table.Column<string>(type: "text", nullable: true),
                     Role = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
@@ -118,8 +116,8 @@ namespace PersonalFinanceTracker_EnterpriseEdition.Infrastructure.Migrations
 
             migrationBuilder.InsertData(
                 table: "Users",
-                columns: new[] { "Id", "CreatedAt", "DeletedAt", "DeletedById", "Email", "FirstName", "IsDeleted", "LastName", "Password", "Role", "UserName" },
-                values: new object[] { new Guid("1c95b1ff-39be-4c2b-8b40-2ce4818573ce"), new DateTime(2025, 7, 14, 17, 19, 22, 46, DateTimeKind.Utc).AddTicks(7023), null, null, "boqiyev482@gmail.com", "Admin", false, null, "$2b$10$uikcMt2Z3WtLye15MeZMl.MoqqQrvGT3Ls3.dKdcwV7U9YWF1bWHe", 20, null });
+                columns: new[] { "Id", "CreatedAt", "DeletedAt", "DeletedById", "Email", "IsDeleted", "Password", "Role", "Username" },
+                values: new object[] { new Guid("a822b15c-4928-4099-963e-29cf0f738cbc"), new DateTime(2025, 7, 16, 0, 38, 56, 238, DateTimeKind.Utc).AddTicks(2695), null, null, "boqiyev482@gmail.com", false, "$2b$10$EMZCaNpL1g3ru6Vr99vmjOEUrH7NvTgxkCLbcr.fd8R4W5qFV8Xsi", 20, null });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AuditLogs_UserId",

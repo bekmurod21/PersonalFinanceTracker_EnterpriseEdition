@@ -99,4 +99,21 @@ public static class ServiceExtension
         services.AddHealthChecks()
                 .AddNpgSql(EnvironmentHelper.DatabaseUrl);
     }
+
+    public static void EnsureExportsDirectoryExists()
+    {
+        try
+        {
+            var exportsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "exports");
+            if (!Directory.Exists(exportsPath))
+            {
+                Directory.CreateDirectory(exportsPath);
+                Log.Information("Created exports directory: {ExportsPath}", exportsPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to create exports directory");
+        }
+    }
 }

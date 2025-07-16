@@ -19,14 +19,14 @@ public class CategoryController(ICategoryService categoryService) : ControllerBa
     private static Guid GetUserId() => HttpContextHelper.UserId;
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] PaginationParams @params,[FromQuery]string? search)
+    public async Task<ActionResult<List<GetCategoryDto>>> GetAll([FromQuery] PaginationParams @params,[FromQuery]string? search)
     {
         var result = await _categoryService.GetAllAsync(GetUserId(),search,@params);
         return Ok(result);
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(Guid id)
+    public async Task<ActionResult<GetCategoryDto>> GetById(Guid id)
     {
         var result = await _categoryService.GetByIdAsync(id, GetUserId());
         if (result == null) return NotFound();
@@ -34,21 +34,21 @@ public class CategoryController(ICategoryService categoryService) : ControllerBa
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateCategoryDto dto)
+    public async Task<ActionResult<GetCategoryDto>> Create([FromBody] CreateCategoryDto dto)
     {
         var result = await _categoryService.CreateAsync(dto, GetUserId());
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCategoryDto dto)
+    public async Task<ActionResult<GetCategoryDto>> Update(Guid id, [FromBody] UpdateCategoryDto dto)
     {
         var result = await _categoryService.UpdateAsync(id, dto, GetUserId());
         return Ok(result);
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(Guid id)
+    public async Task<ActionResult> Delete(Guid id)
     {
         var success = await _categoryService.DeleteAsync(id, GetUserId());
         if (!success) return NotFound();
